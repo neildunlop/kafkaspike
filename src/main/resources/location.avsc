@@ -1,0 +1,9 @@
+{"namespace": "com.effectivenorth.kafkaspike.avro",
+  "type": "record",
+  "name": "Fixture",
+  "fields": [
+    {"name": "id", "type": "string", "doc" : "id"},
+    {"name": "name", "type": "string", "doc" : "name"},
+    {"name": "marketCount", "type": "int", "doc" : "marketCount"}
+  ]
+}
