@@ -8,20 +8,16 @@ import mu.KotlinLogging
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.apache.kafka.streams.Consumed
-import org.apache.kafka.streams.KeyValue
 import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.kstream.KStream
 import org.apache.kafka.streams.kstream.Produced
-import java.lang.Character.toUpperCase
 import org.apache.kafka.common.serialization.Serdes
-import org.apache.kafka.common.serialization.Serde
 import java.util.*
 import org.apache.kafka.streams.KafkaStreams
 import java.lang.System.getProperties
 import com.effectivenorth.kafkaspike.model.PurchasePattern
-
-
+import com.effectivenorth.kafkaspike.model.RewardAccumulator
 
 
 @SpringBootApplication
@@ -48,19 +44,28 @@ class Application {
         val purchasePatternDeserializer = JsonDeserializer(PurchasePattern::class.java)
         val purchasePatternSerde = Serdes.serdeFrom(purchasePatternSerializer, purchasePatternDeserializer)
 
-        
+        val rewardAccumulatorSerializer = JsonSerializer<RewardAccumulator>()
+        val rewardAccumulatorDeserializer = JsonDeserializer(RewardAccumulator::class.java)
+        val rewardAccumulatorSerde = Serdes.serdeFrom(rewardAccumulatorSerializer, rewardAccumulatorDeserializer)
 
         val stringSerde = Serdes.String()
-
         val streamsBuilder = StreamsBuilder()
 
-        val purchaseKStream = streamsBuilder.stream<String, Purchase>("transactions", Consumed.with(stringSerde, purchaseSerde))
+        val purchaseKStream = streamsBuilder.stream("transactions", Consumed.with(stringSerde, purchaseSerde))
                 .mapValues{p -> p.maskCreditCard()}
 
-        val patternKStream: KStream<String, PurchasePattern> = purchaseKStream.mapValues { purchase -> PurchasePattern(purchase) }
+        val patternKStream = purchaseKStream.mapValues { purchase -> PurchasePattern(purchase) }
         patternKStream.to("patterns", Produced.with<String, PurchasePattern>(stringSerde, purchasePatternSerde))
 
+        val rewardsKStream = purchaseKStream.mapValues { purchase -> RewardAccumulator(purchase) }
+        rewardsKStream.to("rewards", Produced.with(stringSerde, rewardAccumulatorSerde))
 
+        purchaseKStream.to("purchases", Produced.with(stringSerde, purchaseSerde))
+
+        println("Starting PurchaseStreams Example")
+        val kafkaStreams = KafkaStreams(streamsBuilder.build(), config)
+        kafkaStreams.start()
+        println("Now started PurchaseStreams Example")
     }
 
     final fun createSimpleTopology() {
