@@ -10,7 +10,6 @@ import org.junit.ClassRule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.kafka.test.rule.KafkaEmbedded
@@ -19,6 +18,8 @@ import org.springframework.test.context.junit4.SpringRunner
 import java.util.concurrent.TimeUnit
 
 
+//A simple test that uses an embedded kafka instance, a test producer, a test receiver and awaitility to test that
+//we can send and receive messages using Kafka.
 @DirtiesContext
 @RunWith(SpringRunner::class)
 @SpringBootTest
@@ -55,8 +56,6 @@ class EmbeddedKafkaTest {
         val testPayload = "Hello World!"
 
         producer.send(topic, testPayload)
-
-        //receiver.latch.await(5000, TimeUnit.MILLISECONDS)
         await().atMost(5, TimeUnit.SECONDS).until { receiver.latch.count == 0L }
 
         //assertThat(receiver.latch.count, equalTo(0L))
